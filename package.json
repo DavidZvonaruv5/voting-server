@@ -13,6 +13,7 @@
   "dependencies": {
     "@nomicfoundation/hardhat-toolbox": "^2.0.2",
     "@nomiclabs/hardhat-ethers": "^2.2.2",
+    "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "ethers": "^5.7.1",
     "express": "^4.17.1",
