@@ -25,7 +25,6 @@ const client = new MongoClient(uri);
 const DB_NAME = 'VoterDB';
 const COLLECTION_NAME = 'voters_and_candidates';
 const db = client.db(DB_NAME);
-const collection = db.collection(COLLECTION_NAME);
 
 async function connectToDatabase() {
   try {

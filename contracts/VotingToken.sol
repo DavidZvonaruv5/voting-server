@@ -24,6 +24,10 @@ contract VotingToken is ERC20 {
         votingEnd = block.timestamp + (_durationInMinutes * 1 minutes);
 
         candidates_addresses = _candidates_addresses;
+        //initialize the voting results.
+        for(uint i=0; i<candidates_addresses.length;i++){
+            votingResults.push(0);
+        }
     }
 
     function decimals() public view virtual override returns (uint8) {
