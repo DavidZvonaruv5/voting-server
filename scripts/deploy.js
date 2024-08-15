@@ -44,16 +44,19 @@ async function main() {
     const id = "66b8737c3469f64e5f3e22b0";
     const doc = await collection.findOne({ _id: new ObjectId(id) });
     const candidates = doc['candidates']
+    const voters = doc['voters']
 
     console.log(candidates)
+    console.log(voters)
     candidates_addresses = candidates.map((candidate) => {return Object.values(candidate)[0]})
+    const voters_addresses = voters.map((voter) => {return Object.values(voter)[0]})
 
     // eslint-disable-next-line no-undef
     const Voting = await ethers.getContractFactory("VotingToken");
     
     const total_time = 90
     // Start deployment, returning a promise that resolves to a contract object
-    const Voting_ = await Voting.deploy(candidates_addresses,total_time);
+    const Voting_ = await Voting.deploy(voters_addresses,candidates_addresses,total_time);
 
     console.log("Contract address:", Voting_.address);
     updateEnvFile('CONTRACT_ADDRESS', Voting_.address);
