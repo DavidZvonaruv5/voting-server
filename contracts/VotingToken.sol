@@ -38,17 +38,14 @@ contract VotingToken is ERC20 {
     function giveRightToVote(address to) public
     { 
         require(owner == msg.sender,'Only owner can tarnsfer tokens to eligible voters.');
-        require(!voters[to],'This voter have already voted.'); 
-        transfer(to,1);
+        require(!voters[to],'This voter have already voted.');
+        require(balanceOf(to) == 0, 'This voter already has voting rights.'); 
+        transfer(to,1); 
     }
 
     // Function to return the voting status of a given address
     function hasVoted(address voter) public view returns (bool) {
         return voters[voter];
-    }
-    // return true if the current account is the owner of the contract.
-    function isOwner() public view returns (bool){
-        return msg.sender == owner;
     }
     // Function to return the entire votingResults array
     function getVotingResults() public view returns (uint256[] memory) {

@@ -4,13 +4,14 @@ require('dotenv').config();
 class DBConnector
 {
     
-    constructor(dbName) 
+    constructor(dbName,_collectionName) 
     {
         const PASSWORD = process.env.PASSWORD
         const USER = process.env.USER
 
         this.dbName = dbName;
-
+        this.collectionName = _collectionName;
+        
         this.uri = `mongodb+srv://${USER}:${PASSWORD}@cluster0.yyza8.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
         this.client = new MongoClient(this.uri);
     }

@@ -2,10 +2,13 @@ const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
 const cors = require('cors');
 require('dotenv').config();
+const { ethers } = require("ethers");
 
 //start of suggestion
 const path = require('path');
 const fs = require('fs');
+const { getAll } = require('./utils/getData');
+const DBConnector = require('./utils/DBConnector');
 //end of suggestion
 
 const app = express();
@@ -14,41 +17,15 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// strat of suggestion
-const PASSWORD = process.env.PASSWORD
-const USER = process.env.USER
-
-const uri = `mongodb+srv://${USER}:${PASSWORD}@cluster0.yyza8.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
-//end of suggestion
-
-const client = new MongoClient(uri);
 const DB_NAME = 'VoterDB';
 const COLLECTION_NAME = 'voters_and_candidates';
-const db = client.db(DB_NAME);
-
-async function connectToDatabase() {
-  try {
-    await client.connect();
-    console.log('Connected to MongoDB');
-  } catch (error) {
-    console.error('Error connecting to MongoDB:', error);
-    process.exit(1);
-  }
-}
+const dbConnector = new DBConnector(DB_NAME,COLLECTION_NAME)
 
 app.post('/verify', async (req, res) => {
   const { userId, metamaskAddress } = req.body;
 
   try {
-    const db = client.db('VoterDB');
-    const collection = db.collection('voters_and_candidates');
-
-
-    // start of suggestion
-    
-    const id = "66b8737c3469f64e5f3e22b0";
-    const doc = await collection.findOne({ _id: new ObjectId(id) });
-    const voters = doc['voters']
+    const voters = await getAll(dbConnector,'voters')
 
     const index = voters.findIndex((voter) => { return Object.keys(voter)[0] === userId })
 
@@ -68,13 +45,10 @@ app.post('/verify', async (req, res) => {
 
 app.get('/candidates', async (req, res) => {
   try {
-    const db = client.db('VoterDB');
-    const collection = db.collection('voters_and_candidates');
-    const id = "66b8737c3469f64e5f3e22b0";
-    const document = await collection.findOne({ _id: new ObjectId(id) });
+    const candidates = await getAll(dbConnector,'candidates')
 
-    if (document && document.candidates) {
-      res.json(document.candidates);
+    if (candidates) {
+      res.json(candidates);
     } else {
       res.status(404).json({ error: "Candidates not found" });
     }
@@ -84,14 +58,46 @@ app.get('/candidates', async (req, res) => {
   }
 });
 
-connectToDatabase().then(() => {
+const startServer = async () =>{
+  await dbConnector.connectToDatabase();
+  await sendTokens();
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
   });
-});
+}
+
+async function sendTokens() {
+  // Connect to the Ethereum network
+  const provider = new ethers.providers.JsonRpcProvider(process.env['URL']);
+  const privateKey = process.env['MTW_PRIVATE_KEY'];
+  const wallet = new ethers.Wallet(privateKey, provider);
+
+  const contractAddress = process.env['CONTRACT_ADDRESS'];
+  const abi = getABI();  
+  const contract = new ethers.Contract(contractAddress, abi, wallet);
+  
+  console.log(wallet.address)
+  //get all voters addresses
+  const voters = await getAll(dbConnector,'voters')
+  const voters_addresses = voters.map((voter) => {return Object.values(voter)[0]}) 
+
+  //send voting rights to all allowed voters.
+  voters_addresses.forEach(async (address) => {
+    const balance = await contract.balanceOf(address);
+    if (balance.eq(0)) {
+      await contract.giveRightToVote(address);
+    } else {
+      console.log(`Voter ${address} already has voting rights.`);
+    }
+  });
+
+}
+
+startServer()
+
 
 async function retrieveAllDocuments() {
-  const db = client.db(DB_NAME);
+  const db = dbConnector.client.db(DB_NAME);
   const collection = db.collection(COLLECTION_NAME);
 
   try {
@@ -148,15 +154,15 @@ app.post('/verify-id', async (req, res) => {
 });
 
 
-app.get('/all-documents', async (req, res) => {
-  try {
-    const documents = await retrieveAllDocuments();
-    res.json(documents);
-  } catch (error) {
-    console.error("Error retrieving all documents:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
+// app.get('/all-documents', async (req, res) => {
+//   try {
+//     const documents = await retrieveAllDocuments();
+//     res.json(documents);
+//   } catch (error) {
+//     console.error("Error retrieving all documents:", error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
 
 
 

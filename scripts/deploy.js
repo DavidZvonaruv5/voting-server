@@ -1,5 +1,5 @@
 const {ObjectId } = require('mongodb');
-const DBConnector = require('../DBConnector.js')
+const DBConnector = require('../utils/DBConnector.js')
 
 const fs = require('fs');
 const path = require('path');
@@ -46,8 +46,6 @@ async function main() {
     const candidates = doc['candidates']
     const voters = doc['voters']
 
-    console.log(candidates)
-    console.log(voters)
     candidates_addresses = candidates.map((candidate) => {return Object.values(candidate)[0]})
     const voters_addresses = voters.map((voter) => {return Object.values(voter)[0]})
 
