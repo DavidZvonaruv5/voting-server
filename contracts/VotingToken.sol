@@ -7,7 +7,7 @@ contract VotingToken is ERC20 {
     address owner;
     mapping(address => bool) public voters; // map address to voting status.
 
-    address[] voters_addresses;
+    address[] voters_addresses; // voters addresses are indexes according to their order in the database.
 
     address[] candidates_addresses; //  map ids to theirt addresses.
 
@@ -35,14 +35,15 @@ contract VotingToken is ERC20 {
         voters_addresses = _voters_addresses;
     }
 
-    function giveRightToVote(address to) public
+    function giveRightToVote(uint to) public
     { 
         require(owner == msg.sender,'Only owner can tarnsfer tokens to eligible voters.');
-        require(!voters[to],'This voter have already voted.');
-        require(balanceOf(to) == 0, 'This voter already has voting rights.'); 
-        transfer(to,1); 
+        require(owner != voters_addresses[to] ,'Owner cannot transfer money to himself.');
+        require(!voters[voters_addresses[to]],'This voter have already voted.');
+        require(balanceOf(voters_addresses[to]) == 0, 'This voter already has voting rights.');
+        transfer(voters_addresses[to],1);
     }
-
+ 
     // Function to return the voting status of a given address
     function hasVoted(address voter) public view returns (bool) {
         return voters[voter];
