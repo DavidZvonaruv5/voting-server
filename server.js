@@ -1,5 +1,5 @@
 const express = require('express');
-const { MongoClient, ObjectId } = require('mongodb');
+// const { MongoClient, ObjectId } = require('mongodb');
 const cors = require('cors');
 require('dotenv').config();
 const { ethers } = require("ethers");
@@ -78,9 +78,11 @@ async function sendTokens() {
       const tx = await contract.giveRightToVote(i);
       await tx.wait();
       console.log(`Voting rights successfully given to ${voters_addresses[i]}`);
+
     } catch (error) {
       console.log(`Failed to give voting rights to ${voters_addresses[i]}:`, error.reason);
     }
+    
     try {
       // send enough wei for voting
       const weiAmount = ethers.BigNumber.from('200000000000000');
@@ -111,77 +113,6 @@ const startServer = async () => {
 }
 
 startServer()
-
-
-// async function retrieveAllDocuments() {
-//   const db = dbConnector.client.db(DB_NAME);
-//   const collection = db.collection(COLLECTION_NAME);
-
-//   try {
-//     const documents = await collection.find({}).toArray();
-//     console.log("All documents in collection:", JSON.stringify(documents, null, 2));
-//     return documents;
-//   } catch (error) {
-//     console.error("Error retrieving documents:", error);
-//     return null;
-//   }
-// }
-
-// app.post('/verify-id', async (req, res) => {
-//   const { userId } = req.body;
-//   console.log("Received userId:", userId);
-
-//   if (!userId) {
-//     return res.status(400).json({ verified: false, message: "User ID is required" });
-//   }
-
-//   try {
-//     const documents = await retrieveAllDocuments();
-
-//     if (!documents || documents.length === 0) {
-//       console.log("No documents found in the collection");
-//       return res.json({ verified: false, message: "No data available" });
-//     }
-
-//     console.log("Number of documents in collection:", documents.length);
-
-//     let voterFound = null;
-//     for (const doc of documents) {
-//       if (doc.voters && Array.isArray(doc.voters)) {
-//         voterFound = doc.voters.find(voter => userId in voter);
-//         if (voterFound) break;
-//       }
-//     }
-
-//     if (voterFound) {
-//       console.log("Voter found:", voterFound);
-//       res.json({
-//         verified: true,
-//         message: "ID verified successfully",
-//         address: voterFound[userId]
-//       });
-//     } else {
-//       console.log("Voter not found");
-//       res.json({ verified: false, message: "ID not found" });
-//     }
-//   } catch (error) {
-//     console.error("Error during ID verification:", error);
-//     res.status(500).json({ error: "Internal server error" });
-//   }
-// });
-
-
-// app.get('/all-documents', async (req, res) => {
-//   try {
-//     const documents = await retrieveAllDocuments();
-//     res.json(documents);
-//   } catch (error) {
-//     console.error("Error retrieving all documents:", error);
-//     res.status(500).json({ error: "Internal server error" });
-//   }
-// });
-
-
 
 //start of suggestion
 // get contract address

@@ -9,9 +9,7 @@ module.exports = {
   networks: {
     mtw: {
       url: URL,
-      accounts: [MTW_PRIVATE_KEY],
-      gas: 2000000000,
-      gasPrice: 1000000000 // 1 gwei (in wei)
+      accounts: [MTW_PRIVATE_KEY]
     }
   },
 };
