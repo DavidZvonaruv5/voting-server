@@ -1,10 +1,9 @@
 const express = require('express');
-// const { MongoClient, ObjectId } = require('mongodb');
+const { ObjectId } = require('mongodb');
 const cors = require('cors');
 require('dotenv').config();
 const { ethers } = require("ethers");
 
-//start of suggestion
 const path = require('path');
 const fs = require('fs');
 const { getAll } = require('./utils/getData');
@@ -18,8 +17,8 @@ app.use(cors());
 app.use(express.json());
 
 const DB_NAME = 'VoterDB';
-const COLLECTION_NAME = 'voters_and_candidates';
-const dbConnector = new DBConnector(DB_NAME, COLLECTION_NAME)
+const dbConnector = new DBConnector(DB_NAME)
+let CONTRACT_ADDRESS = "0x";
 
 app.post('/verify', async (req, res) => {
   const { userId, metamaskAddress } = req.body;
@@ -58,21 +57,18 @@ app.get('/candidates', async (req, res) => {
   }
 });
 
-async function sendTokens() {
+async function sendTokens(contract) {
   // Connect to the Ethereum network
   const provider = new ethers.providers.JsonRpcProvider(process.env['URL']);
   const privateKey = process.env['MTW_PRIVATE_KEY'];
   const wallet = new ethers.Wallet(privateKey, provider);
-
-  const contractAddress = process.env['CONTRACT_ADDRESS'];
-  const abi = getABI();
-  const contract = new ethers.Contract(contractAddress, abi, wallet);
 
   //get all voters addresses
   const voters = await getAll(dbConnector, 'voters')
   const voters_addresses = voters.map((voter) => { return Object.values(voter)[0] })
 
   //send voting rights to all allowed voters.
+
   for (let i = 0; i < voters_addresses.length; i++) {
     try {
       const tx = await contract.giveRightToVote(i);
@@ -82,31 +78,92 @@ async function sendTokens() {
     } catch (error) {
       console.log(`Failed to give voting rights to ${voters_addresses[i]}:`, error.reason);
     }
-    
-    try {
-      // send enough wei for voting
-      const weiAmount = ethers.BigNumber.from('200000000000000');
-      const transaction = { to: voters_addresses[i], value: weiAmount };
-      
-      // Send the transaction
-      const transactionResponse = await wallet.sendTransaction(transaction);
-      console.log(`Transaction sent to ${voters_addresses[i]}: ${transactionResponse.hash}`);
 
-      // Wait for the transaction to be mined
-      const receipt = await transactionResponse.wait();
-      console.log(`Transaction confirmed in block ${receipt.blockNumber}`);
-    }
-    catch (err) {
-      console.error(`Failed to send ETH to ${voters_addresses[i]}:`, err);
-    }
+    // try {
+    //   // send enough wei for voting
+    //   const weiAmount = ethers.BigNumber.from('200000000000000');
+    //   const transaction = { to: voters_addresses[i], value: weiAmount };
+
+    //   // Send the transaction
+    //   const transactionResponse = await wallet.sendTransaction(transaction);
+    //   console.log(`Transaction sent to ${voters_addresses[i]}: ${transactionResponse.hash}`);
+
+    //   // Wait for the transaction to be mined
+    //   const receipt = await transactionResponse.wait();
+    //   console.log(`Transaction confirmed in block ${receipt.blockNumber}`);
+    // }
+    // catch (err) {
+    //   console.error(`Failed to send ETH to ${voters_addresses[i]}:`, err);
+    // }
   }
 }
 
+async function deployContract() {
+  // Set up provider and wallet
+  const provider = new ethers.providers.JsonRpcProvider(process.env['URL']);
+  const wallet = new ethers.Wallet(process.env['MTW_PRIVATE_KEY'], provider);
+
+  // Contract ABI and Bytecode
+  const abi = getArtifact('abi')
+  const bytecode = getArtifact('bytecode')
+
+  const ContractFactory = new ethers.ContractFactory(abi, bytecode, wallet);
+
+  const dbName = 'VoterDB';
+
+  const db = dbConnector.client.db(dbName);
+  const collection = db.collection('voters_and_candidates');
+
+  const id = "66b8737c3469f64e5f3e22b0";
+  const doc = await collection.findOne({ _id: new ObjectId(id) });
+  const candidates = doc['candidates']
+  const voters = doc['voters']
+
+  candidates_addresses = candidates.map((candidate) => { return Object.values(candidate)[0] })
+  const voters_addresses = voters.map((voter) => { return Object.values(voter)[0] })
+
+  const total_time = 90
+  const contract = await ContractFactory.deploy(voters_addresses, candidates_addresses, total_time);
+
+  // Wait for the transaction to be mined
+  await contract.deployTransaction.wait();
+
+  console.log("Contract address:", contract.address);
+  CONTRACT_ADDRESS = contract.address;
+
+  // Verify if the contract has been deployed successfully
+  const code = await provider.getCode(contract.address);
+
+  if (code !== '0x') {
+    console.log('Contract deployed successfully!');
+  } else {
+    console.error('Contract deployment failed!');
+    throw new Error('FAILED TO DEPLOY CONTRACT')
+  }
+
+  return contract;
+}
 
 
 const startServer = async () => {
-  await dbConnector.connectToDatabase();
-  await sendTokens();
+  let contract;
+  try {
+    await dbConnector.connectToDatabase();
+  } catch (error) {
+    console.log('Error connecting to the database:', error)
+  }
+  try {
+    contract = await deployContract();
+    console.log(contract.address)
+
+  } catch (error) {
+    console.log('Error deploying contract:', error)
+  }
+  try{
+    await sendTokens(contract);
+  } catch(error){
+    console.log('Error sending tokens:', error)
+  }
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
   });
@@ -114,57 +171,20 @@ const startServer = async () => {
 
 startServer()
 
-//start of suggestion
 // get contract address
 app.get('/contract_address', async (req, res) => {
   try {
-    res.json(process.env.CONTRACT_ADDRESS);
+    res.json(CONTRACT_ADDRESS);
   } catch (error) {
     console.error("Error retrieving contract address:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 })
-//end of suggestion
-
-
-//start of suggestion
-
-//get contract abi
-const getABI = () => {
-  try {
-    const contract_abi_path = path.join(__dirname, 'artifacts', 'contracts', 'VotingToken.sol', 'VotingToken.json');
-
-    // Check if the file exists
-    if (!fs.existsSync(contract_abi_path)) {
-      throw new Error(`ABI file not found at path: ${contract_abi_path}`);
-    }
-
-    // Read the file
-    const data = fs.readFileSync(contract_abi_path, 'utf8');
-
-    // Parse the file as JSON
-    let votingJSON;
-    try {
-      votingJSON = JSON.parse(data);
-    } catch (error) {
-      throw new Error(`Error parsing JSON from file: ${contract_abi_path}`);
-    }
-
-    // Check if the 'abi' key exists in the parsed JSON
-    if (!votingJSON.hasOwnProperty('abi')) {
-      throw new Error(`ABI not found in JSON file: ${contract_abi_path}`);
-    }
-
-    return votingJSON['abi'];
-  } catch (error) {
-    console.error(error.message);
-  }
-}
 
 // send contract abi to client
 app.get('/contract_abi', async (req, res) => {
   try {
-    const abi = getABI()
+    const abi = getArtifact('abi')
     res.send(abi)
   } catch (error) {
     console.error("Error retrieving contract address:", error);
@@ -172,4 +192,33 @@ app.get('/contract_abi', async (req, res) => {
   }
 })
 
-//end of suggestion
+const getArtifact = (artifactName) => {
+  try {
+    const artifact_path = path.join(__dirname, 'artifacts', 'contracts', 'VotingToken.sol', 'VotingToken.json');
+
+    // Check if the file exists
+    if (!fs.existsSync(artifact_path)) {
+      throw new Error(`ABI file not found at path: ${artifact_path}`);
+    }
+
+    // Read the file
+    const data = fs.readFileSync(artifact_path, 'utf8');
+
+    // Parse the file as JSON
+    let votingJSON;
+    try {
+      votingJSON = JSON.parse(data);
+    } catch (error) {
+      throw new Error(`Error parsing JSON from file: ${artifact_path}`);
+    }
+
+    // Check if the 'abi' key exists in the parsed JSON
+    if (!votingJSON.hasOwnProperty(artifactName)) {
+      throw new Error(`ABI not found in JSON file: ${artifact_path}`);
+    }
+
+    return votingJSON[artifactName];
+  } catch (error) {
+    console.error(error.message);
+  }
+}
