@@ -41,7 +41,8 @@ contract VotingToken is ERC20 {
         require(owner != voters_addresses[to] ,'Owner cannot transfer money to himself.');
         require(!voters[voters_addresses[to]],'This voter have already voted.');
         require(balanceOf(voters_addresses[to]) == 0, 'This voter already has voting rights.');
-        transfer(voters_addresses[to],1);
+        require(balanceOf(msg.sender) >= 2,'Theres no tokens left to give.');
+        transfer(voters_addresses[to],1); 
     }
  
     // Function to return the voting status of a given address

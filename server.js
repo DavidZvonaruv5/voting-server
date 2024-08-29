@@ -79,22 +79,22 @@ async function sendTokens(contract) {
       console.log(`Failed to give voting rights to ${voters_addresses[i]}:`, error.reason);
     }
 
-    // try {
-    //   // send enough wei for voting
-    //   const weiAmount = ethers.BigNumber.from('200000000000000');
-    //   const transaction = { to: voters_addresses[i], value: weiAmount };
+    try {
+      // send enough wei for voting
+      const weiAmount = ethers.BigNumber.from('200000000000000');
+      const transaction = { to: voters_addresses[i], value: weiAmount };
 
-    //   // Send the transaction
-    //   const transactionResponse = await wallet.sendTransaction(transaction);
-    //   console.log(`Transaction sent to ${voters_addresses[i]}: ${transactionResponse.hash}`);
+      // Send the transaction
+      const transactionResponse = await wallet.sendTransaction(transaction);
+      console.log(`Transaction sent to ${voters_addresses[i]}: ${transactionResponse.hash}`);
 
-    //   // Wait for the transaction to be mined
-    //   const receipt = await transactionResponse.wait();
-    //   console.log(`Transaction confirmed in block ${receipt.blockNumber}`);
-    // }
-    // catch (err) {
-    //   console.error(`Failed to send ETH to ${voters_addresses[i]}:`, err);
-    // }
+      // Wait for the transaction to be mined
+      const receipt = await transactionResponse.wait();
+      console.log(`Transaction confirmed in block ${receipt.blockNumber}`);
+    }
+    catch (err) {
+      console.error(`Failed to send ETH to ${voters_addresses[i]}:`, err);
+    }
   }
 }
 
