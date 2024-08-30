@@ -11,7 +11,7 @@ const DBConnector = require('./utils/DBConnector');
 //end of suggestion
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = 10000;
 
 app.use(cors());
 app.use(express.json());
