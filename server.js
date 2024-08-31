@@ -123,14 +123,21 @@ async function deployContract() {
   const voters_addresses = voters.map((voter) => { return Object.values(voter)[0] })
 
   const total_time = 90
-  const contract = await ContractFactory.deploy(voters_addresses, candidates_addresses, total_time);
-
+  // const contract = await ContractFactory.deploy(voters_addresses, candidates_addresses, total_time);
+  try {
+    const contract = await ContractFactory.deploy(voters_addresses, candidates_addresses, total_time, {
+      gasLimit: 5000000  // Set a higher gas limit if necessary
+    });
   // Wait for the transaction to be mined
   await contract.deployTransaction.wait();
 
   console.log("Contract address:", contract.address);
   CONTRACT_ADDRESS = contract.address;
 
+  } catch(error) {
+    console.error("Deployment failed:", error);
+    throw error;
+  }
   // Verify if the contract has been deployed successfully
   const code = await provider.getCode(contract.address);
 
