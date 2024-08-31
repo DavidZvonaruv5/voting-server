@@ -151,20 +151,21 @@ const startServer = async () => {
     await dbConnector.connectToDatabase();
   } catch (error) {
     console.log('Error connecting to the database:', error)
+    return
   }
-  console.log('155')
   try {
     contract = await deployContract();
     console.log(contract.address)
 
   } catch (error) {
     console.log('Error deploying contract:', error)
+    return
   }
-  console.log('163')
   try{
     await sendTokens(contract);
   } catch(error){
     console.log('Error sending tokens:', error)
+    return
   }
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
