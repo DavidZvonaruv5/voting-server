@@ -100,12 +100,15 @@ async function sendTokens(contract) {
 
 async function deployContract() {
   // Set up provider and wallet
+  console.log('103')
   const provider = new ethers.providers.JsonRpcProvider(process.env['URL']);
   const wallet = new ethers.Wallet(process.env['MTW_PRIVATE_KEY'], provider);
-
+  console.log('106')
+  
   // Contract ABI and Bytecode
   const abi = getArtifact('abi')
   const bytecode = getArtifact('bytecode')
+  console.log('111')
 
   const ContractFactory = new ethers.ContractFactory(abi, bytecode, wallet);
 
@@ -123,7 +126,9 @@ async function deployContract() {
   const voters_addresses = voters.map((voter) => { return Object.values(voter)[0] })
 
   const total_time = 90
+  console.log('129')
   const contract = await ContractFactory.deploy(voters_addresses, candidates_addresses, total_time);
+  console.log('131')
 
   // Wait for the transaction to be mined
   await contract.deployTransaction.wait();
