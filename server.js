@@ -95,6 +95,7 @@ async function sendTokens(contract) {
       console.error(`Failed to send ETH to ${voters_addresses[i]}:`, err);
     }
   }
+  console.log('Finished giving voting rights.')
 }
 
 async function deployContract() {
@@ -121,7 +122,7 @@ async function deployContract() {
   candidates_addresses = candidates.map((candidate) => { return Object.values(candidate)[0] })
   const voters_addresses = voters.map((voter) => { return Object.values(voter)[0] })
 
-  const total_time = 90
+  const total_time = 10 //////////////////////////////////////////////// change later
   const contract = await ContractFactory.deploy(voters_addresses, candidates_addresses, total_time);
 
   // Wait for the transaction to be mined
@@ -145,24 +146,24 @@ async function deployContract() {
 
 
 const startServer = async () => {
-  let contract;
-  try {
-    await dbConnector.connectToDatabase();
-  } catch (error) {
-    console.log('Error connecting to the database:', error)
-  }
-  try {
-    contract = await deployContract();
-    console.log(contract.address)
+  // let contract;
+  // try {
+  //   await dbConnector.connectToDatabase();
+  // } catch (error) {
+  //   console.log('Error connecting to the database:', error)
+  // }
+  // try {
+  //   contract = await deployContract();
+  //   console.log(contract.address)
 
-  } catch (error) {
-    console.log('Error deploying contract:', error)
-  }
-  try{
-    await sendTokens(contract);
-  } catch(error){
-    console.log('Error sending tokens:', error)
-  }
+  // } catch (error) {
+  //   console.log('Error deploying contract:', error)
+  // }
+  // try{
+  //   await sendTokens(contract);
+  // } catch(error){
+  //   console.log('Error sending tokens:', error)
+  // }
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
   });
@@ -190,6 +191,57 @@ app.get('/contract_abi', async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 })
+
+// check manager authentication - validate userName and password written by the user.
+app.post('/admin_auth', async (req, res) => {
+  try {
+    const dbName = 'VoterDB';
+
+    const db = dbConnector.client.db(dbName);
+    const collection = db.collection('admin_data');
+
+    const id = "66d6179cd213102e0751674e";
+    const doc = await collection.findOne({ _id: new ObjectId(id) });
+
+    console.log(doc)
+
+    const realUserName = doc['userName']
+    const realPassword = doc['password']
+
+    const { userName, password } = req.body
+    console.log(userName)
+    console.log(password)
+    if (userName === realUserName && password === realPassword) {
+      res.send(true)
+    }
+    else res.send(false)
+
+  }
+  catch (error) {
+    console.error("Error retriving user name and password:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+})
+
+// create new ballot with the voting admin
+app.post('/start_ballot', async (req, res) => {
+  try {
+    contract = await deployContract();
+    console.log(contract.address)
+
+  } catch (error) {
+    console.log('Error deploying contract:', error)
+    res.send(false)
+  }
+  try {
+    await sendTokens(contract);
+    res.send(true)
+  } catch (error) {
+    console.log('Error sending tokens:', error)
+    res.send(false)
+  }
+})
+
 
 const getArtifact = (artifactName) => {
   try {
