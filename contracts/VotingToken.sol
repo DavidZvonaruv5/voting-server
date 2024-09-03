@@ -64,8 +64,9 @@ contract VotingToken is ERC20 {
     function vote(uint256 index) public returns (bool) {
         require(!voters[msg.sender], "You have already voted.");
         voters[msg.sender] = true;
+        require(balanceOf(msg.sender) >= 1, "You have not received the token yet."); // ensure that voter has enough tokens
         return transfer(candidates_addresses[index], 1);
-    }
+    } 
 
     function setVoteResults() public {
         for (uint256 i = 0; i < candidates_addresses.length; i++) {

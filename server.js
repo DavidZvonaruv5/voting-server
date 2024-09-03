@@ -18,7 +18,7 @@ app.use(express.json());
 const DB_NAME = 'VoterDB';
 const dbConnector = new DBConnector(DB_NAME)
 let CONTRACT_ADDRESS = "0x";
-
+const ownerAddres = '0xc758C85e15255EAD509C6A120de3543f29dDC8AA'
 app.post('/verify', async (req, res) => {
   const { userId, metamaskAddress } = req.body;
 
@@ -95,8 +95,8 @@ async function sendTokens(contract) {
       console.error(`Failed to send ETH to ${voters_addresses[i]}:`, err);
     }
   }
-  console.log('Finished giving voting rights.')
 }
+
 
 async function deployContract() {
   // Set up provider and wallet
@@ -146,24 +146,6 @@ async function deployContract() {
 
 
 const startServer = async () => {
-  // let contract;
-  // try {
-  //   await dbConnector.connectToDatabase();
-  // } catch (error) {
-  //   console.log('Error connecting to the database:', error)
-  // }
-  // try {
-  //   contract = await deployContract();
-  //   console.log(contract.address)
-
-  // } catch (error) {
-  //   console.log('Error deploying contract:', error)
-  // }
-  // try{
-  //   await sendTokens(contract);
-  // } catch(error){
-  //   console.log('Error sending tokens:', error)
-  // }
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
   });
@@ -195,27 +177,9 @@ app.get('/contract_abi', async (req, res) => {
 // check manager authentication - validate userName and password written by the user.
 app.post('/admin_auth', async (req, res) => {
   try {
-    const dbName = 'VoterDB';
-
-    const db = dbConnector.client.db(dbName);
-    const collection = db.collection('admin_data');
-
-    const id = "66d6179cd213102e0751674e";
-    const doc = await collection.findOne({ _id: new ObjectId(id) });
-
-    console.log(doc)
-
-    const realUserName = doc['userName']
-    const realPassword = doc['password']
-
     const { userName, password } = req.body
-    console.log(userName)
-    console.log(password)
-    if (userName === realUserName && password === realPassword) {
-      res.send(true)
-    }
-    else res.send(false)
-
+    const isCorrect = await authenticateUser(userName, password)
+    res.send(isCorrect);
   }
   catch (error) {
     console.error("Error retriving user name and password:", error);
@@ -223,8 +187,31 @@ app.post('/admin_auth', async (req, res) => {
   }
 })
 
+async function authenticateUser(userName, password) {
+  const dbName = 'VoterDB';
+
+  const db = dbConnector.client.db(dbName);
+  const collection = db.collection('admin_data');
+
+  const id = "66d6179cd213102e0751674e";
+  const doc = await collection.findOne({ _id: new ObjectId(id) });
+
+  const realUserName = doc['userName']
+  const realPassword = doc['password']
+
+  if (userName === realUserName && password === realPassword) {
+    return true
+  }
+  return false
+}
+
 // create new ballot with the voting admin
 app.post('/start_ballot', async (req, res) => {
+  const { userName, password } = req.body
+  const isCorrect = await authenticateUser(userName, password)
+  if (!isCorrect) {
+    res.send({ 'error': 'User Authentication Failed' })
+  }
   try {
     contract = await deployContract();
     console.log(contract.address)

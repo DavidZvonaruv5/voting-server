@@ -35,7 +35,6 @@ async function getAll(dbConnector,name) {
             throw new Error("Voters data is missing or not in the correct format.");
         }
         
-        console.log(data)
         return data;
 
     } catch (error) {
