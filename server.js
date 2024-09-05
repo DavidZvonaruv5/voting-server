@@ -122,7 +122,7 @@ async function deployContract() {
   candidates_addresses = candidates.map((candidate) => { return Object.values(candidate)[0] })
   const voters_addresses = voters.map((voter) => { return Object.values(voter)[0] })
 
-  const total_time = 10 //////////////////////////////////////////////// change later
+  const total_time = 10 
   const contract = await ContractFactory.deploy(voters_addresses, candidates_addresses, total_time);
 
   // Wait for the transaction to be mined
@@ -215,6 +215,7 @@ app.post('/start_ballot', async (req, res) => {
   try {
     contract = await deployContract();
     console.log(contract.address)
+    res.send(true)
 
   } catch (error) {
     console.log('Error deploying contract:', error)
@@ -222,10 +223,9 @@ app.post('/start_ballot', async (req, res) => {
   }
   try {
     await sendTokens(contract);
-    res.send(true)
   } catch (error) {
     console.log('Error sending tokens:', error)
-    res.send(false)
+    throw error
   }
 })
 
